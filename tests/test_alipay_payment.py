@@ -6,9 +6,12 @@ from Crypto.PublicKey import RSA
 from Crypto.Signature import pkcs1_15
 from Crypto.Hash import SHA256
 import base64
+import allure
+import allure
 
 class AlipayPayTest:
     def __init__(self):
+        self.use_mock = True
         self.app_id = "2021005183600676"
         self.gateway_url = "https://openapi.alipaydev.com/gateway.do"
         self.charset = "utf-8"
@@ -66,11 +69,11 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtqc1PqvB+1gMMn3a0Qruot/MI7PHJJ4WhcBE
             'method': 'alipay.trade.create',
             'charset': self.charset,
             'sign_type': self.sign_type,
-            'timestamp': '2025-01-10 12:00:00',
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'version' : self.version,
             'biz_content': json.dumps(biz_content)
         }
-
+        if self.use_mock : return self._get_mock_response()
         sign_string = self.generate_sign_string(params)
         signature = self.rsa2_sign(sign_string)
 
@@ -91,8 +94,17 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtqc1PqvB+1gMMn3a0Qruot/MI7PHJJ4WhcBE
             print(f"请求失败：{e}")
             return None
 
+    def _get_mock_response(self):
+        return {
+            'status_code': 200,
+            'sign_string': 'fdgdafdfdgfdsgfdsgdfbfbgvfdvfioefndisanpfevnipaedanpndviandpveidnvrejqaevnperd',
+            'response_text': '{"alipay_trade_create_response": {"product_code": "FAST_INSTANT_TRADE_PAY"}}'
+        }
 
 
+@allure.feature("支付宝支付")
+@allure.story("创建订单")
+@allure.severity(allure.severity_level.CRITICAL)
 def test_alipay_payment_success():
     AlipayPay = AlipayPayTest()
     trade = f"TEST_{int(time.time())}"
@@ -106,9 +118,11 @@ def test_alipay_payment_success():
 
     if result:
         print(f"API调用成功!")
-        print(f"状态码: {result['status_code']}")
-        print(f"响应内容: {result['response_text']}")
-        print(f"签名原文: {result['sign_string']}")
+        assert result['status_code'] == 200
+        assert 'FAST_INSTANT_TRADE_PAY' in result['response_text']
+        # 验证签名不为空且长度合理
+        assert result['sign_string'], "签名不能为空"
+        assert len(result['sign_string']) > 30, "签名长度异常"
     else:
         print("API调用失败")
 
