@@ -7,5 +7,11 @@ CONFIG = {
         "order_prefix": "TEST_",
         "refund_reason": "用户申请退款",
         "idempotent_order": "TEST_IDEMPOTENT_FIXED"
+    },
+    "mobile": {
+        "device_name" : "emulator-5554",
+        "app_package" : "com.android.settings",
+        "app_activity" : ".Settings",
+        "appium_server_url" : "http://localhost:4723"
     }
 }
