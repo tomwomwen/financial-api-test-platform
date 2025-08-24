@@ -1,7 +1,8 @@
 import requests
 import time
 import random
-BASE_URL = "http://127.0.0.1:4523/m1/6943198-6659588-default"
+from config.test_config import CONFIG
+BASE_URL = CONFIG["api"]["apifox_base_url"]
 
 def test_connection():
     response = requests.get(BASE_URL);
@@ -13,13 +14,13 @@ def test_refund():
     url = BASE_URL + "/refund"
     data= {
         "refund_amount": amount,
-        "refund_reason": "用户申请退款",
+        "refund_reason": CONFIG["test_data"]["refund_reason"],
         "out_trade_no": trade_no
     }
     response = requests.post(url,json=data)
     validate_common_response(response)
     assert response.json()["data"]["refund_amount"] == amount
-    assert response.json()["data"]["refund_reason"] == "用户申请退款"
+    assert response.json()["data"]["refund_reason"] == CONFIG["test_data"]["refund_reason"]
     print(f"状态码：{response.status_code}")
 def test_query():
     result = generate_test_order()
@@ -31,11 +32,11 @@ def test_query():
     }
     response = requests.get(url,params=params)
     validate_common_response(response)
-    assert response.json()["data"]["total_amount"] == "0.01"
+    assert response.json()["data"]["total_amount"] == CONFIG["test_data"]["default_amount"]
 def test_idempotent():
     # 步骤1：固定订单号和请求数据
     result = generate_test_order()
-    trade_no = "TEST_IDEMPOTENT_FIXED"
+    trade_no = CONFIG["test_data"]["idempotent_order"]
     amount = result["amount"]
     url = BASE_URL + "/pay"  # 支付接口URL
     # 固定的支付请求数据
@@ -53,9 +54,11 @@ def test_idempotent():
     first_result = first_response.json()
     second_result = second_response.json()
 
-def generate_test_order(amount="0.01"):
+def generate_test_order(amount=None):
+    if amount is None:
+        amount = CONFIG["test_data"]["default_amount"]
     random1 = random.randint(1000,9999)
-    trade_no = f"TEST_{int(time.time())}_{random1}"
+    trade_no = f"{CONFIG['test_data']['order_prefix']}{int(time.time())}_{random1}"
     return{
         "out_trade_no": trade_no,
         "amount": amount
@@ -73,7 +76,7 @@ def test_refund_missing_field():
     url = BASE_URL + "/refund"
     data = {
         # 故意不包含 out_trade_no
-        "refund_amount": "0.01",
+        "refund_amount": CONFIG["test_data"]["default_amount"],
         "refund_reason": "测试缺少字段"
     }
     response = requests.post(url, json=data)
@@ -119,7 +122,7 @@ def test_pay_zero_amount():
     validate_error_response(response, "40001", "支付金额不能为0")
 
 def test_pay_min_amount():
-    result = generate_test_order(amount="0.01")
+    result = generate_test_order()
     trade_no = result["out_trade_no"]
     amount = result["amount"]
     url = BASE_URL + "/pay"
