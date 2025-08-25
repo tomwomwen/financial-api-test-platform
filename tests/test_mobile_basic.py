@@ -5,12 +5,24 @@ from selenium.webdriver.common.by import By
 from appium.webdriver.common.appiumby import AppiumBy  # 需要导入这个
 from config.test_config import CONFIG
 from pages.settings_page import SettingsPage
-def test_mobile_basic():
+
+
+@pytest.mark.parametrize("device_config", CONFIG["mobile"]["devices"])
+def test_mobile_basic(device_config):
+
     options = UiAutomator2Options()
-    options.device_name = CONFIG["mobile"]["device_name"]
-    options.app_package = CONFIG["mobile"]["app_package"]
-    options.app_activity = CONFIG["mobile"]["app_activity"]
+    options.device_name = device_config["device_name"]
+    options.app_package = device_config["app_package"]
+    options.app_activity = device_config["app_activity"]
+
+    options.udid = device_config["device_name"]
     driver = webdriver.Remote(CONFIG["mobile"]["appium_server_url"], options=options)
+
+    device_info = driver.capabilities
+    print(device_info)
+
+    screen_size = driver.get_window_size()
+    print(screen_size)
 
     settings = SettingsPage(driver)
 
@@ -26,7 +38,7 @@ def test_mobile_basic():
 
     time.sleep(5)
 
-    driver.save_screenshot("internet_page.png")
+    driver.save_screenshot(f"{device_config['name']}_internet_page.png")
     print("点击network&internet后的界面截图保存！")
 
     try:
